@@ -1531,6 +1531,10 @@ local void check_match(s, start, match, length)
 #  define check_match(s, start, match, length)
 #endif /* ZLIB_DEBUG */
 
+#if defined(ARM_NEON)
+#include "contrib/optimizations/fill_window_arm.h"
+#endif
+
 /* ===========================================================================
  * Fill the window when the lookahead becomes insufficient.
  * Updates strstart and lookahead.
@@ -1545,7 +1549,11 @@ local void fill_window_c(deflate_state *s);
 
 local void fill_window(deflate_state *s)
 {
+#if defined(ARM_NEON)
+    fill_window_arm(s);
+#else
     fill_window_c(s);
+#endif
 }
 
 local void fill_window_c(s)
