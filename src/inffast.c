@@ -7,6 +7,7 @@
 #include "inftrees.h"
 #include "inflate.h"
 #include "inffast.h"
+#include "memcopy.h"
 
 #ifdef ASMINF
 #  pragma message("Assembler code may have bugs -- use at your own risk")
@@ -190,10 +191,9 @@ unsigned start;         /* inflate()'s starting value for strm->avail_out */
        input data or output space */
     do {
         if (bits < 15) {
-            hold += (unsigned long)(*in++) << bits;
-            bits += 8;
-            hold += (unsigned long)(*in++) << bits;
-            bits += 8;
+            hold += load_short(in, bits);
+            in += 2;
+            bits += 16;
         }
         here = lcode[hold & lmask];
       dolen:
@@ -221,10 +221,9 @@ unsigned start;         /* inflate()'s starting value for strm->avail_out */
             }
             Tracevv((stderr, "inflate:         length %u\n", len));
             if (bits < 15) {
-                hold += (unsigned long)(*in++) << bits;
-                bits += 8;
-                hold += (unsigned long)(*in++) << bits;
-                bits += 8;
+                hold += load_short(in, bits);
+                in += 2;
+                bits += 16;
             }
             here = dcode[hold & dmask];
           dodist:
@@ -306,10 +305,18 @@ unsigned start;         /* inflate()'s starting value for strm->avail_out */
                     if (op < len) {             /* still need some from output */
                         len -= op;
                         out = chunkcopysafe(out, from, op, safe);
-                        out = chunkunroll(out, &dist, &len);
-                        out = chunkcopysafe(out, out - dist, len, safe);
+                        if (dist == 1) {
+                            out = byte_memset(out, len);
+                        } else {
+                            out = chunkunroll(out, &dist, &len);
+                            out = chunkcopysafe(out, out - dist, len, safe);
+                        }
                     } else {
-                        out = chunkcopysafe(out, from, len, safe);
+                        if (from - out == 1) {
+                            out = byte_memset(out, len);
+                        } else {
+                            out = chunkcopysafe(out, from, len, safe);
+                        }
                     }
 #else
                     from = window;
@@ -352,46 +359,30 @@ unsigned start;         /* inflate()'s starting value for strm->avail_out */
                             from = out - dist;  /* rest from output */
                         }
                     }
-                    while (len > 2) {
-                        *out++ = *from++;
-                        *out++ = *from++;
-                        *out++ = *from++;
-                        len -= 3;
-                    }
-                    if (len) {
-                        *out++ = *from++;
-                        if (len > 1)
-                            *out++ = *from++;
-                    }
+
+                    out = chunk_copy(out, from, (int) (out - from), len);
 #endif
                 } else {
 #ifdef INFFAST_CHUNKSIZE
-                    /* Whole reference is in range of current output.  No
-                       range checks are necessary because we start with room
-                       for at least 258 bytes of output, so unroll and roundoff
-                       operations can write beyond `out+len` so long as they
-                       stay within 258 bytes of `out`.
-                     */
-                    out = chunkunroll(out, &dist, &len);
-                    out = chunkcopy(out, out - dist, len);
-#else
-                    from = out - dist;          /* copy direct from output */
-                    if (dist == 1) {
-                        memset (out, *from, len);
-                        out += len;
+                    if (dist == 1 && len >= sizeof(uint64_t)) {
+                        out = byte_memset(out, len);
                     } else {
-                        do {                        /* minimum length is three */
-                            *out++ = *from++;
-                            *out++ = *from++;
-                            *out++ = *from++;
-                            len -= 3;
-                        } while (len > 2);
-                        if (len) {
-                            *out++ = *from++;
-                            if (len > 1)
-                                *out++ = *from++;
-                        }
+                        /* Whole reference is in range of current output.  No
+                           range checks are necessary because we start with room
+                           for at least 258 bytes of output, so unroll and roundoff
+                           operations can write beyond `out+len` so long as they
+                           stay within 258 bytes of `out`.
+                         */
+                        out = chunkunroll(out, &dist, &len);
+                        out = chunkcopy(out, out - dist, len);
                     }
+#else
+                    if (len < sizeof(uint64_t))
+                      out = set_bytes(out, out - dist, dist, len);
+                    else if (dist == 1)
+                      out = byte_memset(out, len);
+                    else
+                      out = chunk_memset(out, out - dist, dist, len);
 #endif
                 }
             }

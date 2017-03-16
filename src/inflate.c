@@ -84,6 +84,7 @@
 #include "inftrees.h"
 #include "inflate.h"
 #include "inffast.h"
+#include "memcopy.h"
 #if defined(USE_ARMV8_CRC32)
 #include "contrib/optimizations/arm/arm_features.h"
 #endif
@@ -1190,18 +1191,29 @@ int flush;
                 }
                 else
                     from = state->window + (state->wnext - copy);
-                if (copy > state->length) copy = state->length;
-            }
-            else {                              /* copy from output */
-                from = put - state->offset;
+                if (copy > state->length)
+                    copy = state->length;
+                if (copy > left)
+                    copy = left;
+                left -= copy;
+                state->length -= copy;
+                if (copy >= sizeof(uint64_t))
+                    put = chunk_memcpy(put, from, copy);
+                else
+                    put = copy_bytes(put, from, copy);
+            } else {                              /* copy from output */
+                unsigned offset = state->offset;
+                from = put - offset;
                 copy = state->length;
+                if (copy > left)
+                    copy = left;
+                left -= copy;
+                state->length -= copy;
+                if (copy >= sizeof(uint64_t))
+                    put = chunk_memset(put, from, offset, copy);
+                else
+                    put = set_bytes(put, from, offset, copy);
             }
-            if (copy > left) copy = left;
-            left -= copy;
-            state->length -= copy;
-            do {
-                *put++ = *from++;
-            } while (--copy);
             if (state->length == 0) state->mode = LEN;
             break;
         case LIT:
