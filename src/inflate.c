@@ -412,10 +412,19 @@ unsigned copy;
 
     /* if it hasn't been done already, allocate space for the window */
     if (state->window == Z_NULL) {
+#ifdef INFFAST_CHUNKSIZE
+        unsigned wsize = 1U << state->wbits;
+        state->window = (unsigned char FAR *)
+                        ZALLOC(strm, wsize + INFFAST_CHUNKSIZE,
+                               sizeof(unsigned char));
+        if (state->window == Z_NULL) return 1;
+        memset(state->window + wsize, 0, INFFAST_CHUNKSIZE);
+#else
         state->window = (unsigned char FAR *)
                         ZALLOC(strm, 1U << state->wbits,
                                sizeof(unsigned char));
         if (state->window == Z_NULL) return 1;
+#endif
     }
 
     /* if window not in use yet, initialize */
