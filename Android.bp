@@ -38,6 +38,7 @@ cc_defaults {
                 "-march=armv8-a+crc",
                 "-DUSE_ARMV8_CRC32",
                 "-DARM_NEON",
+                "-DARM_NEON_ADLER32",
             ],
 
             // TODO: This is to work around b/24465209. Remove after root cause is fixed
@@ -49,7 +50,7 @@ cc_defaults {
                 "src/contrib/optimizations/arm/armv8_crc32.c",
                 "src/contrib/optimizations/inffast_chunky.c",
                 "src/contrib/optimizations/inflate.c",
-
+                "src/contrib/optimizations/neon_adler32.c",
             ],
         },
         arm64: {
@@ -57,6 +58,7 @@ cc_defaults {
                 "-march=armv8-a+crc",
                 "-DUSE_ARMV8_CRC32",
                 "-DARM_NEON",
+                "-DARM_NEON_ADLER32",
             ],
 
             srcs: [
@@ -65,6 +67,7 @@ cc_defaults {
                 "src/contrib/optimizations/arm/armv8_crc32.c",
                 "src/contrib/optimizations/inffast_chunky.c",
                 "src/contrib/optimizations/inflate.c",
+                "src/contrib/optimizations/neon_adler32.c",
             ],
         },
         x86: {
