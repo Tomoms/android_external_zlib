@@ -1,8 +1,9 @@
-/* fill_window_arm.c -- Optimized hash table shifting for ARM
+/* fill_window_arm.c -- Optimized hash table shifting for ARM with support for NEON instructions
  * Copyright (C) 2017 Mika T. Lindqvist
  *
  * Authors:
  * Mika T. Lindqvist <postmaster@raasu.org>
+ * Jun He <jun.he@arm.com>
  *
  * For conditions of distribution and use, see copyright notice in zlib.h
  */
@@ -14,7 +15,45 @@
 
 #include "../../deflate.h"
 
-extern ZLIB_INTERNAL unsigned read_buf (z_stream *strm, unsigned char *buf, unsigned size);
+extern ZLIB_INTERNAL unsigned read_buf(z_stream *strm, unsigned char *buf, unsigned size);
+
+#if defined(ARM_NEON)
+#include <arm_neon.h>
+
+/* SIMD version of hash_chain rebase */
+static inline void slide_hash_chain(Pos *table, unsigned int entries, uint16_t window_size) {
+    register uint16x8_t v, *p;
+    register size_t n;
+
+    size_t size = entries*sizeof(table[0]);
+    Assert((size % sizeof(uint16x8_t) * 8 == 0), "hash table size err");
+
+    Assert(sizeof(Pos) == 2, "Wrong Pos size");
+    v = vdupq_n_u16(window_size);
+
+    p = (uint16x8_t *)table;
+    n = size / (sizeof(uint16x8_t) * 8);
+    do {
+        p[0] = vqsubq_u16(p[0], v);
+        p[1] = vqsubq_u16(p[1], v);
+        p[2] = vqsubq_u16(p[2], v);
+        p[3] = vqsubq_u16(p[3], v);
+        p[4] = vqsubq_u16(p[4], v);
+        p[5] = vqsubq_u16(p[5], v);
+        p[6] = vqsubq_u16(p[6], v);
+        p[7] = vqsubq_u16(p[7], v);
+        p += 8;
+    } while (--n);
+}
+#else
+/* generic version for hash rebase */
+static inline void slide_hash_chain(Pos *table, unsigned int entries, uint16_t window_size) {
+    unsigned int i;
+    for (i = 0; i < entries; i++) {
+        table[i] = (table[i] >= window_size) ? (table[i] - window_size) : NIL;
+    }
+}
+#endif
 
 void fill_window_arm(deflate_state *s) {
     register unsigned n;
@@ -30,8 +69,6 @@ void fill_window_arm(deflate_state *s) {
          * move the upper half to the lower one to make room in the upper half.
          */
         if (s->strstart >= wsize+MAX_DIST(s)) {
-            unsigned int i;
-
             memcpy(s->window, s->window+wsize, wsize);
             s->match_start -= wsize;
             s->strstart    -= wsize; /* we now have strstart >= MAX_DIST */
@@ -43,24 +80,9 @@ void fill_window_arm(deflate_state *s) {
                later. (Using level 0 permanently is not an optimal usage of
                zlib, so we don't care about this pathological case.)
              */
-            {
-                n = s->hash_size;
-                for (i = 0; i < n; i++) {
-                    if (s->head[i] >= wsize)
-                        s->head[i] -= wsize;
-                    else
-                        s->head[i] = NIL;
-                }
-            }
 
-            {
-                for (i = 0; i < wsize; i++) {
-                    if (s->prev[i] >= wsize)
-                        s->prev[i] -= wsize;
-                    else
-                        s->prev[i] = NIL;
-                }
-            }
+            slide_hash_chain(s->head, s->hash_size, wsize);
+            slide_hash_chain(s->prev, wsize, wsize);
             more += wsize;
         }
         if (s->strm->avail_in == 0)
@@ -90,7 +112,7 @@ void fill_window_arm(deflate_state *s) {
 
             s->ins_h = s->window[str];
 
-            if (unlikely(s->lookahead < MIN_MATCH))
+            if (s->lookahead < MIN_MATCH)
                 insert_cnt += s->lookahead - MIN_MATCH;
             slen = insert_cnt;
             if (str >= (MIN_MATCH - 2))
@@ -100,7 +122,7 @@ void fill_window_arm(deflate_state *s) {
             }
             if (insert_cnt > 0)
             {
-                insert_string(s, str, insert_cnt);
+                insert_cnt = insert_string(s, str);
                 s->insert -= slen;
             }
         }
@@ -143,8 +165,7 @@ void fill_window_arm(deflate_state *s) {
         }
     }
 
-    Assert((unsigned long)s->strstart <= s->window_size - MIN_LOOKAHEAD,
-           "not enough room for search");
+    Assert((unsigned long)s->strstart <= s->window_size - MIN_LOOKAHEAD, "not enough room for search");
 }
 
 #endif
