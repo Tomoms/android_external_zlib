@@ -48,6 +48,17 @@ cc_library {
             // TODO: This is to work around b/24465209. Remove after root cause is fixed
             pack_relocations: false,
             ldflags: ["-Wl,--hash-style=both"],
+
+            srcs: [
+                "src/contrib/arm/inffast.c",
+                "src/contrib/arm/inflate.c",
+            ],
+        },
+        arm64: {
+            srcs: [
+                "src/contrib/arm/inffast.c",
+                "src/contrib/arm/inflate.c",
+            ],
         },
     },
 
