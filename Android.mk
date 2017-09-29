@@ -20,7 +20,9 @@ zlib_files := \
 	src/inffast.c \
 	src/trees.c \
 	src/uncompr.c \
-	src/zutil.c
+	src/zutil.c \
+	src/contrib/arm/inffast.c \
+	src/contrib/arm/inflate.c
 
 zlib_cflags := -O3 -funroll-loops -DUSE_MMAP -DZLIB_CONST -DUNALIGNED_OK
 
