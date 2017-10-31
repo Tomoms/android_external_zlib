@@ -21,8 +21,8 @@ zlib_files := \
 	src/trees.c \
 	src/uncompr.c \
 	src/zutil.c \
-	src/contrib/arm/inffast.c \
-	src/contrib/arm/inflate.c
+	src/contrib/optimizations/inffast_chunky.c \
+	src/contrib/optimizations/inflate.c
 
 zlib_cflags := -O3 -funroll-loops -DUSE_MMAP -DZLIB_CONST -DUNALIGNED_OK
 
@@ -40,7 +40,9 @@ ifneq ($(TARGET_BUILD_APPS),)
 else
   LOCAL_CXX_STL := none
 endif
-LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)
+LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH) \
+				src/contrib/optimizations \
+				src/contrib/optimizations/arm
 include $(BUILD_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
