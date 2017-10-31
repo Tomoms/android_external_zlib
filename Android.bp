@@ -8,7 +8,11 @@ cc_defaults {
         "-DUNALIGNED_OK",
     ],
     stl: "none",
-    export_include_dirs: ["."],
+    export_include_dirs: [
+        ".",
+        "src/contrib/optimizations",
+        "src/contrib/optimizations/arm",
+    ],
     srcs: [
         "src/adler32.c",
         "src/compress.c",
@@ -19,9 +23,7 @@ cc_defaults {
         "src/gzread.c",
         "src/gzwrite.c",
         "src/infback.c",
-        "src/inflate.c",
         "src/inftrees.c",
-        "src/inffast.c",
         "src/trees.c",
         "src/uncompr.c",
         "src/zutil.c",
@@ -37,14 +39,26 @@ cc_defaults {
             ldflags: ["-Wl,--hash-style=both"],
 
             srcs: [
-                "src/contrib/arm/inffast.c",
-                "src/contrib/arm/inflate.c",
+                "src/contrib/optimizations/inffast_chunky.c",
+                "src/contrib/optimizations/inflate.c",
             ],
         },
         arm64: {
             srcs: [
-                "src/contrib/arm/inffast.c",
-                "src/contrib/arm/inflate.c",
+                "src/contrib/optimizations/inffast_chunky.c",
+                "src/contrib/optimizations/inflate.c",
+            ],
+        },
+        x86: {
+            srcs: [
+                "src/inffast.c",
+                "src/inflate.c",
+            ],
+        },
+        x86_64: {
+            srcs: [
+                "src/inffast.c",
+                "src/inflate.c",
             ],
         },
     },
