@@ -22,7 +22,6 @@ cc_defaults {
         "src/gzlib.c",
         "src/gzread.c",
         "src/gzwrite.c",
-        "src/infback.c",
         "src/inftrees.c",
         "src/trees.c",
         "src/uncompr.c",
@@ -39,24 +38,29 @@ cc_defaults {
             ldflags: ["-Wl,--hash-style=both"],
 
             srcs: [
+                "src/contrib/optimizations/arm/infback.c",
                 "src/contrib/optimizations/inffast_chunky.c",
                 "src/contrib/optimizations/inflate.c",
+
             ],
         },
         arm64: {
             srcs: [
+                "src/contrib/optimizations/arm/infback.c",
                 "src/contrib/optimizations/inffast_chunky.c",
                 "src/contrib/optimizations/inflate.c",
             ],
         },
         x86: {
             srcs: [
+                "src/infback.c",
                 "src/inffast.c",
                 "src/inflate.c",
             ],
         },
         x86_64: {
             srcs: [
+                "src/infback.c",
                 "src/inffast.c",
                 "src/inflate.c",
             ],
