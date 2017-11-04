@@ -6,7 +6,7 @@
 #include "../../zutil.h"
 #include "../../inftrees.h"
 #include "../../inflate.h"
-#include "../../inffast.h"
+#include "inffast_chunky.h"
 #include "chunkcopy.h"
 
 #ifdef ASMINF
@@ -28,6 +28,10 @@
         strm->avail_out >= 258
         start >= strm->avail_out
         state->bits < 8
+        strm->next_out[0..strm->avail_out] does not overlap with
+              strm->next_in[0..strm->avail_in]
+        strm->state->window is allocated with an additional
+              CHUNKCOPY_CHUNK_SIZE-1 bytes of padding beyond strm->state->wsize
 
    On return, state->mode is one of:
 
@@ -46,7 +50,7 @@
       requires strm->avail_out >= 258 for each loop to avoid checking for
       output space.
  */
-void ZLIB_INTERNAL inflate_fast(strm, start)
+void ZLIB_INTERNAL inflate_fast_chunky(strm, start)
 z_streamp strm;
 unsigned start;         /* inflate()'s starting value for strm->avail_out */
 {
