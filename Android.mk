@@ -14,17 +14,15 @@ zlib_files := \
 	src/gzlib.c \
 	src/gzread.c \
 	src/gzwrite.c \
-	src/infback.c \
-	src/inflate.c \
 	src/inftrees.c \
-	src/inffast.c \
 	src/trees.c \
 	src/uncompr.c \
 	src/zutil.c \
 	src/contrib/optimizations/inffast_chunky.c \
 	src/contrib/optimizations/inflate.c \
 	src/contrib/optimizations/arm/arm_features.c \
-	src/contrib/optimizations/arm/armv8_crc32.c
+	src/contrib/optimizations/arm/armv8_crc32.c \
+	src/contrib/optimizations/arm/infback.c
 
 zlib_cflags := -O3 -funroll-loops -DUSE_MMAP -DZLIB_CONST -DUNALIGNED_OK
 
