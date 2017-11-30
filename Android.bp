@@ -47,17 +47,31 @@ cc_library {
             // than the thumb one...
             instruction_set: "arm",
 
+            cflags: [
+                "-march=armv8-a+crc",
+                "-DUSE_ARMV8_CRC32",
+            ],
+
             // TODO: This is to work around b/24465209. Remove after root cause is fixed
             pack_relocations: false,
             ldflags: ["-Wl,--hash-style=both"],
 
             srcs: [
+                "src/contrib/optimizations/arm/arm_features.c",
+                "src/contrib/optimizations/arm/armv8_crc32.c",
                 "src/contrib/optimizations/inffast_chunky.c",
                 "src/contrib/optimizations/inflate.c",
             ],
         },
         arm64: {
+            cflags: [
+                "-march=armv8-a+crc",
+                "-DUSE_ARMV8_CRC32",
+            ],
+
             srcs: [
+                "src/contrib/optimizations/arm/arm_features.c",
+                "src/contrib/optimizations/arm/armv8_crc32.c",
                 "src/contrib/optimizations/inffast_chunky.c",
                 "src/contrib/optimizations/inflate.c",
             ],
