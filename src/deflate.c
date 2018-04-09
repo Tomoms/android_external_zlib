@@ -53,6 +53,9 @@
 #if defined(USE_ARMV8_CRC32)
 #include "contrib/optimizations/arm/arm_features.h"
 #endif
+#if __ARM_NEON
+#include "contrib/optimizations/neon_slide_hash.h"
+#endif
 
 const char deflate_copyright[] =
    " deflate 1.2.11 Copyright 1995-2017 Jean-loup Gailly and Mark Adler ";
@@ -213,6 +216,9 @@ bulk_insert_str(deflate_state *s, uInt* ins_h, Pos startpos, uInt count) {
 local void slide_hash(s)
     deflate_state *s;
 {
+#if ARM_NEON
+    return neon_slide_hash(s->head, s->prev, s->w_size, s->hash_size);
+#else
     unsigned n, m;
     Posf *p;
     uInt wsize = s->w_size;
@@ -263,6 +269,7 @@ local void slide_hash(s)
         m = *p;
         n = 0;
     }
+#endif
 #endif
 }
 
