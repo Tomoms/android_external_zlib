@@ -49,6 +49,7 @@ cc_library {
             cflags: [
                 "-march=armv8-a+crc",
                 "-DUSE_ARMV8_CRC32",
+                "-DARM_NEON",
             ],
 
             // TODO: This is to work around b/24465209. Remove after root cause is fixed
@@ -67,6 +68,7 @@ cc_library {
             cflags: [
                 "-march=armv8-a+crc",
                 "-DUSE_ARMV8_CRC32",
+                "-DARM_NEON",
             ],
 
             srcs: [
