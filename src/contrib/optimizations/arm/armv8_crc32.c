@@ -68,3 +68,22 @@ uint32_t armv8_crc32_little(uint32_t crc,
     c = ~c;
     return c;
 }
+
+Pos ZLIB_INTERNAL insert_string_arm(deflate_state *const s, const Pos str)
+{
+    Pos ret;
+    unsigned *ip, val, h = 0;
+
+    ip = (unsigned *)&s->window[str];
+    val = *ip;
+
+    if (s->level >= 6)
+        val &= 0xFFFFFF;
+
+    h = __crc32w(h, val);
+
+    ret = s->head[h & s->hash_mask];
+    s->head[h & s->hash_mask] = str;
+    s->prev[str & s->w_mask] = ret;
+    return ret;
+}
