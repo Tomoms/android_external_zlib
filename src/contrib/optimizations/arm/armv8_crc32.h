@@ -12,7 +12,13 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "../../../deflate.h"
 
 uint32_t armv8_crc32_little(uint32_t crc, const unsigned char* buf, size_t len);
+
+/*
+ * Insert hash string.
+ */
+Pos ZLIB_INTERNAL insert_string_arm(deflate_state *const s, const Pos str);
 
 #endif

@@ -52,6 +52,7 @@
 #include "deflate.h"
 #if defined(USE_ARMV8_CRC32)
 #include "contrib/optimizations/arm/arm_features.h"
+#include "contrib/optimizations/arm/armv8_crc32.h"
 #endif
 
 const char deflate_copyright[] =
@@ -190,6 +191,10 @@ local INLINE Pos insert_string_c(deflate_state *const s, const Pos str)
 
 local INLINE Pos insert_string(deflate_state *const s, const Pos str)
 {
+#if defined(CRC32_ARMV8_CRC32)
+    if (arm_supports_crc32())
+        return insert_string_arm(s, str);
+#endif
     return insert_string_c(s, str);
 }
 
