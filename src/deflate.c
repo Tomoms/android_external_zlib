@@ -89,7 +89,7 @@ local block_state deflate_huff   OF((deflate_state *s, int flush));
 local void lm_init        OF((deflate_state *s));
 local void putShortMSB    OF((deflate_state *s, uInt b));
 local void flush_pending  OF((z_streamp strm));
-local unsigned read_buf   OF((z_streamp strm, Bytef *buf, unsigned size));
+ZLIB_INTERNAL unsigned read_buf OF((z_streamp strm, Bytef *buf, unsigned size));
 #ifdef ASMV
 #  pragma message("Assembler code may have bugs -- use at your own risk")
       void match_init OF((void)); /* asm code initialization */
@@ -101,6 +101,12 @@ local uInt longest_match  OF((deflate_state *s, IPos cur_match));
 #ifdef ZLIB_DEBUG
 local  void check_match OF((deflate_state *s, IPos start, IPos match,
                             int length));
+#endif
+
+#ifdef _MSC_VER
+#define INLINE __inline
+#else
+#define INLINE inline
 #endif
 
 /* ===========================================================================
@@ -158,15 +164,6 @@ local const config configuration_table[10] = {
 #define RANK(f) (((f) * 2) - ((f) > 4 ? 9 : 0))
 
 /* ===========================================================================
- * Update a hash value with the given input byte
- * IN  assertion: all calls to UPDATE_HASH are made with consecutive input
- *    characters, so that a running hash key can be computed from the previous
- *    key instead of complete recalculation each time.
- */
-#define UPDATE_HASH(s,h,c) (h = (((h)<<s->hash_shift) ^ (c)) & s->hash_mask)
-
-
-/* ===========================================================================
  * Insert string str in the dictionary and set match_head to the previous head
  * of the hash chain (the most recent string with same hash key). Return
  * the previous length of the hash chain.
@@ -176,24 +173,31 @@ local const config configuration_table[10] = {
  *    characters and the first MIN_MATCH bytes of str are valid (except for
  *    the last MIN_MATCH-1 bytes of the input file).
  */
+local INLINE Pos insert_string_c(deflate_state *const s, const Pos str)
+{
+    Pos ret;
+
+    UPDATE_HASH(s, s->ins_h, (str));
 #ifdef FASTEST
-#define INSERT_STRING(s, str, match_head) \
-   (UPDATE_HASH(s, s->ins_h, s->window[(str) + (MIN_MATCH-1)]), \
-    match_head = s->head[s->ins_h], \
-    s->head[s->ins_h] = (Pos)(str))
+    ret = s->head[s->ins_h];
 #else
-#define INSERT_STRING(s, str, match_head) \
-   (UPDATE_HASH(s, s->ins_h, s->window[(str) + (MIN_MATCH-1)]), \
-    match_head = s->prev[(str) & s->w_mask] = s->head[s->ins_h], \
-    s->head[s->ins_h] = (Pos)(str))
+    ret = s->prev[str & s->w_mask] = s->head[s->ins_h];
 #endif
+    s->head[s->ins_h] = str;
+
+    return ret;
+}
+
+local INLINE Pos insert_string(deflate_state *const s, const Pos str)
+{
+    return insert_string_c(s, str);
+}
 
 __attribute__ ((always_inline)) local void
 bulk_insert_str(deflate_state *s, Pos startpos, uInt count) {
     uInt idx;
     for (idx = 0; idx < count; idx++) {
-        Posf dummy;
-        INSERT_STRING(s, *ins_h, startpos + idx, dummy);
+        insert_string(s, startpos + idx);
     }
 }
 
@@ -473,7 +477,7 @@ int ZEXPORT deflateSetDictionary (strm, dictionary, dictLength)
         str = s->strstart;
         n = s->lookahead - (MIN_MATCH-1);
         do {
-            UPDATE_HASH(s, s->ins_h, s->window[str + MIN_MATCH-1]);
+            UPDATE_HASH(s, s->ins_h, str);
 #ifndef FASTEST
             s->prev[str & s->w_mask] = s->head[s->ins_h];
 #endif
@@ -1216,7 +1220,7 @@ int ZEXPORT deflateCopy (dest, source)
  * allocating a large strm->next_in buffer and copying from it.
  * (See also flush_pending()).
  */
-local unsigned read_buf(strm, buf, size)
+ZLIB_INTERNAL unsigned read_buf(strm, buf, size)
     z_streamp strm;
     Bytef *buf;
     unsigned size;
@@ -1537,7 +1541,14 @@ local void check_match(s, start, match, length)
  *    performed for at least two bytes (required for the zip translate_eol
  *    option -- not supported here).
  */
-local void fill_window(s)
+local void fill_window_c(deflate_state *s);
+
+local void fill_window(deflate_state *s)
+{
+    fill_window_c(s);
+}
+
+local void fill_window_c(s)
     deflate_state *s;
 {
     unsigned n;
@@ -1596,12 +1607,12 @@ local void fill_window(s)
         if (s->lookahead + s->insert >= MIN_MATCH) {
             uInt str = s->strstart - s->insert;
             s->ins_h = s->window[str];
-            UPDATE_HASH(s, s->ins_h, s->window[str + 1]);
+            UPDATE_HASH(s, s->ins_h, str + 1 - (MIN_MATCH-1));
 #if MIN_MATCH != 3
             Call UPDATE_HASH() MIN_MATCH-3 more times
 #endif
             while (s->insert) {
-                UPDATE_HASH(s, s->ins_h, s->window[str + MIN_MATCH-1]);
+                UPDATE_HASH(s, s->ins_h, str);
 #ifndef FASTEST
                 s->prev[str & s->w_mask] = s->head[s->ins_h];
 #endif
@@ -1905,7 +1916,7 @@ local block_state deflate_fast(s, flush)
          */
         hash_head = NIL;
         if (s->lookahead >= MIN_MATCH) {
-            INSERT_STRING(s, s->strstart, hash_head);
+            hash_head = insert_string(s, s->strstart);
         }
 
         /* Find the longest match, discarding those <= prev_length.
@@ -1936,7 +1947,7 @@ local block_state deflate_fast(s, flush)
                 s->match_length--; /* string at strstart already in table */
                 do {
                     s->strstart++;
-                    INSERT_STRING(s, s->strstart, hash_head);
+                    hash_head = insert_string(s, s->strstart);
                     /* strstart never exceeds WSIZE-MAX_MATCH, so there are
                      * always MIN_MATCH bytes ahead.
                      */
@@ -1948,7 +1959,7 @@ local block_state deflate_fast(s, flush)
                 s->strstart += s->match_length;
                 s->match_length = 0;
                 s->ins_h = s->window[s->strstart];
-                UPDATE_HASH(s, s->ins_h, s->window[s->strstart+1]);
+                UPDATE_HASH(s, s->ins_h, s->strstart+1 - (MIN_MATCH-1));
 #if MIN_MATCH != 3
                 Call UPDATE_HASH() MIN_MATCH-3 more times
 #endif
@@ -2008,7 +2019,7 @@ local block_state deflate_slow(s, flush)
          */
         hash_head = NIL;
         if (s->lookahead >= MIN_MATCH) {
-            INSERT_STRING(s, s->strstart, hash_head);
+            hash_head = insert_string(s, s->strstart);
         }
 
         /* Find the longest match, discarding those <= prev_length.
