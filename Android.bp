@@ -47,8 +47,7 @@ cc_library {
             instruction_set: "arm",
 
             cflags: [
-                "-march=armv8-a+crc",
-                "-DUSE_ARMV8_CRC32",
+                "-march=armv7-a",
                 "-DARM_NEON",
                 "-DARM_NEON_ADLER32",
             ],
@@ -59,7 +58,6 @@ cc_library {
 
             srcs: [
                 "src/contrib/optimizations/arm/arm_features.c",
-                "src/contrib/optimizations/arm/armv8_crc32.c",
                 "src/contrib/optimizations/arm/infback.c",
                 "src/contrib/optimizations/inffast_chunky.c",
                 "src/contrib/optimizations/inflate.c",
