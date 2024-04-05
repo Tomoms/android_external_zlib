@@ -237,6 +237,10 @@ cc_library {
     visibility: [
         "//bootable/recovery/applypatch",
         "//bootable/recovery/tests",
+        "//bootable/recovery/updater",
+        "//bootable/deprecated-ota/applypatch",
+        "//bootable/deprecated-ota/tests",
+        "//bootable/deprecated-ota/updater",
     ],
     cflags: cflags_common,
     stl: "none",
