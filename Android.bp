@@ -186,7 +186,7 @@ cc_library {
     name: "libz",
     defaults: ["libz_defaults"],
 
-    whole_static_libs: ["libz_static"],
+    srcs: libz_srcs,
 
     unique_host_soname: true,
     static_ndk_lib: true,
@@ -200,33 +200,6 @@ cc_library {
         ],
         symbol_file: "libz.map.txt",
     },
-}
-
-cc_library {
-    name: "libz_static",
-    defaults: ["libz_defaults"],
-    visibility: ["//visibility:private"],
-
-    srcs: libz_srcs,
-
-    arch: {
-        arm: {
-            srcs: srcs_arm,
-        },
-        arm64: {
-            srcs: srcs_arm,
-        },
-        x86_64: {
-            srcs: srcs_x86,
-        }
-    },
-
-    sdk_version: "minimum",
-
-    apex_available: [
-        "com.android.runtime",
-        "//apex_available:platform",
-    ],
 }
 
 // A more stable build of libz. Build configuration of this library should be
