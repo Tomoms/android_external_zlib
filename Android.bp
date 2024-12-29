@@ -55,13 +55,6 @@ cflags_riscv64 = [
 cflags_x86 = [
     // See ARMV8_OS_LINUX above.
     "-DX86_NOT_WINDOWS",
-    // Android's host CPU feature requirements are *lower* than the
-    // corresponding device CPU feature requirements, so it's easier to just
-    // say "no SIMD for you" rather than specificially disable SSSE3.
-    // We should have a conversation about that, but not until we at least have
-    // data on how many Studio users have CPUs that don't make the grade...
-    // https://issuetracker.google.com/171235570
-    "-DCPU_NO_SIMD",
 ]
 cflags_x86_64 = cflags_x86 + ["-DINFLATE_CHUNK_READ_64LE"]
 
