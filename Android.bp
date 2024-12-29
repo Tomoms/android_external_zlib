@@ -21,6 +21,7 @@ cflags_shared = [
     "-DHAVE_HIDDEN",
     // Our compiler does support const.
     "-DZLIB_CONST",
+    "-DUNALIGNED_OK",
     // Use the traditional Rabin-Karp rolling hash to match zlib DEFLATE output exactly.
     "-DCHROMIUM_ZLIB_NO_CASTAGNOLI",
     // Enable -O3 for everyone, as chromium's BUILD.gn does.
