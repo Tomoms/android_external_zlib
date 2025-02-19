@@ -208,6 +208,18 @@ cc_library {
         ],
     },
 
+    arch: {
+        arm: {
+            srcs: srcs_arm,
+        },
+        arm64: {
+            srcs: srcs_arm,
+        },
+        x86_64: {
+            srcs: srcs_x86,
+        }
+    },
+
     // When used by Vendor/Product APEX,
     // libz should be treated like non-stable module.
     // (Hence, should be bundled in APEX).
